@@ -6,11 +6,11 @@ from google.genai import types
 load_dotenv()
 api_key=os.getenv("API_KEY")
 
-client = genai.Client(api_key=api_key)
+client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
 model_id = "gemini-2.5-flash"
 
-system_prompt = "You're a chatbot meant to give quick and 2 lines short responses."
+system_prompt = "You're a chatbot meant to give quick and short responses that are the length of 2 lines."
 sys_temp = 0.4
 
 def start_chat():
