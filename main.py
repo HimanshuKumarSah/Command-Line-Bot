@@ -1,6 +1,16 @@
 import database  as db
 import chat_bot as ai
 import cache as rc
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=2)
+
+def background_log(chat_id, role, content):
+    try:
+        db.add_message(chat_id, role, content)
+        rc.add_to_cache(chat_id, role, content)
+    except Exception as e:
+        print(f"Failed to save data (background process): {e}")
 
 def start_app():
     chat_id = input("Enter your user ID: ").strip()
@@ -30,6 +40,7 @@ def start_app():
     while True:
         user_input = input("\nUser: ").strip()
         if user_input.lower() in ["exit", "quit", "bye"]:
+            executor.shutdown(wait=True)
             break
         
         # history_string = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_content])
@@ -59,10 +70,8 @@ def start_app():
             bot_text, usage = ai.get_response(user_input, full_system_prompt, ai.sys_temp)
             print(f"Bot: {bot_text}\n")
 
-            db.add_message(chat_id, "User", user_input)
-            rc.add_to_cache(chat_id, "User", user_input)
-            db.add_message(chat_id, "Bot", bot_text)
-            rc.add_to_cache(chat_id, "Bot", bot_text)
+            executor.submit(background_log, chat_id, "user", user_input)
+            executor.submit(background_log, chat_id, "bot", bot_text)
 
             recent_content = rc.get_recent_cache(chat_id)
 
