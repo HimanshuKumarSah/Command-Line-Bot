@@ -4,11 +4,11 @@ from google import genai
 from google.genai import types
 
 load_dotenv()
-api_key=os.getenv("API_KEY")
+api_key=os.getenv("GOOGLE_API_KEY")
 
 client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
-model_id = "gemini-2.5-flash-lite"
+model_id = "gemini-2.5-flash"
 
 sys_temp = 0.4
 
