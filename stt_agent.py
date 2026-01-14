@@ -46,7 +46,7 @@ async def entrypoint(ctx: JobContext):
             room=ctx.room,
             room_output_options=RoomOutputOptions(
                 transcription_enabled=True,
-                audio_enabled=False,
+                audio_enabled=True,
             ),
         )
 
