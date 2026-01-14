@@ -24,7 +24,7 @@ class Transcriber(Agent):
         super().__init__(
             instructions="not-needed",
             stt=assemblyai.STT(),
-            llm=google.LLM(model="gemini-2.5-flash"),
+            llm="google/gemini-2.0-flash",
             tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
             turn_detection=MultilingualModel(),
         )
