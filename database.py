@@ -22,3 +22,21 @@ def add_message(chat_id, role, text):
 def get_full_history(chat_id):
     messages = list(collection.find({"chat_id": chat_id}).sort("timestamp", 1))
     return [f"{m['role']}: {m['content']}" for m in messages]
+
+def save_entire_session(chat_id, messages):
+    if not messages:
+        return
+    documents = []
+    for msg in messages:
+        if msg.role == "system":
+            continue
+        documents.append({
+            "chat_id": chat_id,
+            "role": "User" if msg.role == "user" else "Bot",
+            "content": msg.content,
+            "timestamp": datetime.now()
+        })
+    
+    if documents:
+        collection.insert_many(documents)
+        print(f"Session for {chat_id} saved to ({len(documents)} messages).")
