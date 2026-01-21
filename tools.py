@@ -33,6 +33,18 @@ async def verify_and_save(
         user_found = False
         user_index = -1
         
+        normalized_data = []
+        for row in existing_data:
+            normalized_data.append({
+                'Name': row.get('Name') or row.get('name'),
+                'Phone': row.get('Phone') or row.get('phone'),
+                'Email': row.get('Email') or row.get('email'),
+                'Company': row.get('Company') or row.get('company'),
+                'LastUpdated': row.get('LastUpdated') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        existing_data = normalized_data
+
         # Check if file exists
         if os.path.isfile(csv_file):
             with open(csv_file, 'r', newline='', encoding='utf-8') as f:
@@ -106,4 +118,33 @@ async def end_call(ctx: RunContext) -> str:
     asyncio.create_task(delayed_disconnect())
     return "The call is ending."
 
-ALL_TOOLS = [verify_and_save, end_call]
+@function_tool
+async def summarize_conversation(ctx: RunContext) -> str:
+    session = ctx.session
+
+    transcript = "\n".join(
+        f"{m['role'].capitalize()}: {m['content']}"
+        for m in session.conversation_log
+    )
+
+    prompt = f"""
+        Summarize the following phone conversation clearly and concisely.
+        Mention:
+        - User's name
+        - Purpose of the call
+        - Any information verified or updated
+        - Final outcome
+
+        Conversation:
+        {transcript}"""
+    
+    agent = ctx.agent
+    result = await agent.llm.complete(prompt)
+    summary = result.text.strip()
+
+    logger.info("Conversation summary: ")
+    logger.info(summary)
+
+    return f"Before we end, here's a quick summary of our conversation: {summary}"
+
+ALL_TOOLS = [verify_and_save, end_call, summarize_conversation]
