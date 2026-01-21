@@ -31,7 +31,7 @@ Once the user verifies the information is correct, call the verify_and_save tool
 Now summarize, using at most 3 sentences the conversation for the user and then call the end_call tool to end the conversation by saying an ending greeting.""",
         vad=silero.VAD.load(),
         stt=assemblyai.STT(),
-        llm="google/gemini-2.0-flash", 
+        llm="google/gemini-2.5-flash", 
         tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
         tools=ALL_TOOLS,
     )
