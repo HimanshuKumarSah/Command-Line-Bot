@@ -27,8 +27,7 @@ Once you have all 4 pieces of information, call the verify_and_save tool with al
 After calling verify_and_save, repeat all the information to the user and them if all the information is correct or not.
 If the user says the information is not correct, ask the user for that information again.
 Once the information is received, repeat that specific information again, and ask the user if the information is correct or not.
-Once the user verifies the information is correct, call the verify_and_save tool and thank the user.
-Now summarize, using at most 3 sentences the conversation for the user and then call the end_call tool to end the conversation by saying an ending greeting.""",
+Once the user verifies the information is correct, call the verify_and_save tool and thank the user and call the end_call tool to end the conversation by saying an ending greeting.""",
         vad=silero.VAD.load(),
         stt=assemblyai.STT(),
         llm="google/gemini-2.5-flash", 

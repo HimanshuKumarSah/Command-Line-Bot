@@ -118,33 +118,4 @@ async def end_call(ctx: RunContext) -> str:
     asyncio.create_task(delayed_disconnect())
     return "The call is ending."
 
-@function_tool
-async def summarize_conversation(ctx: RunContext) -> str:
-    session = ctx.session
-
-    transcript = "\n".join(
-        f"{m['role'].capitalize()}: {m['content']}"
-        for m in session.conversation_log
-    )
-
-    prompt = f"""
-        Summarize the following phone conversation clearly and concisely.
-        Mention:
-        - User's name
-        - Purpose of the call
-        - Any information verified or updated
-        - Final outcome
-
-        Conversation:
-        {transcript}"""
-    
-    agent = ctx.agent
-    result = await agent.llm.complete(prompt)
-    summary = result.text.strip()
-
-    logger.info("Conversation summary: ")
-    logger.info(summary)
-
-    return f"Before we end, here's a quick summary of our conversation: {summary}"
-
-ALL_TOOLS = [verify_and_save, end_call, summarize_conversation]
+ALL_TOOLS = [verify_and_save, end_call]
