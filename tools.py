@@ -3,8 +3,8 @@ import logging
 import asyncio
 import os
 from datetime import datetime
-from livekit.agents import function_tool, RunContext
-from livekit import rtc
+from livekit.agents import function_tool, RunContext, get_job_context
+from livekit import rtc, api
 
 logger = logging.getLogger("voice-agent")
 
@@ -112,8 +112,18 @@ async def end_call(ctx: RunContext) -> str:
     logger.info("Agent is hanging up.")
     
     async def delayed_disconnect():
-        await asyncio.sleep(2)
-        await ctx.disconnect()
+        try:
+            await asyncio.sleep(2)
+            job_ctx = get_job_context()
+            if job_ctx:
+                await job_ctx.api.room.delete_room(
+                    api.DeleteRoomRequest(room=job_ctx.room.name)
+                )
+                logger.info(f"Room {job_ctx.room.name} deleted successfully")
+            else:
+                logger.warning("Could not get job context for disconnect")
+        except Exception as e:
+            logger.error(f"Error disconnection: {e}")
     
     asyncio.create_task(delayed_disconnect())
     return "The call is ending."
