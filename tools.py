@@ -3,10 +3,14 @@ import logging
 import asyncio
 import os
 import sys
+from dotenv import load_dotenv
 from datetime import datetime
 from livekit.agents import function_tool, RunContext, get_job_context, JobContext
 from livekit import rtc, api
 from livekit.api import DeleteRoomRequest
+from pymongo import MongoClient
+
+load_dotenv()
 
 logger = logging.getLogger("voice-agent")
 
@@ -109,6 +113,17 @@ async def verify_and_save(
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(existing_data)
+        
+        mongo_client = MongoClient(os.getenv("MONGO_URI"))
+        db = mongo_client["chat_bot"]
+        collection = db["messages"]
+
+        collection.insert_one({
+            'Name': name,
+            'Phone': phone,
+            'Email': email,
+            'Company': company,
+            'LastUpdated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
         
         logger.info(f"✓ Successfully saved to {os.path.abspath(csv_file)}")
 

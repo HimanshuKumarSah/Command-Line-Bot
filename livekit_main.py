@@ -5,7 +5,7 @@ import json
 from dotenv import load_dotenv
 from datetime import datetime
 from livekit import rtc
-from livekit.agents import JobContext, cli, WorkerOptions, room_io
+from livekit.agents import JobContext, cli, WorkerOptions, room_io, BackgroundAudioPlayer, BuiltinAudioClip, AudioConfig
 from livekit.agents.voice import Agent, AgentSession
 from livekit.plugins import assemblyai, google, elevenlabs, silero
 from tools import ALL_TOOLS
@@ -90,6 +90,14 @@ async def entrypoint(ctx: JobContext):
         resume_false_interruption=True,
     )
 
+    # background_audio = BackgroundAudioPlayer(
+    #     ambient_sound=AudioConfig(BuiltinAudioClip.OFFICE_AMBIENCE, volume=0.8),
+    #     thinking_sound=[
+    #         AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING, volume=0.8),
+    #         AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING, volume=0.7),
+    #     ],
+    # )
+
     @session.on("tool_call")
     def on_tool_call(event):
         async def handle():
@@ -153,10 +161,8 @@ async def entrypoint(ctx: JobContext):
             call_ended = True
             logger.info("End call detected – finalizing session")
 
-            # 1️⃣ STOP LISTENING TO AUDIO FIRST (THIS IS CRITICAL)
             await session.stop_listening()
 
-            # 2️⃣ Generate summary
             conversation_text = format_conversation_for_summary(
                 tracker.conversation
             )
@@ -169,13 +175,10 @@ async def entrypoint(ctx: JobContext):
             tracker.set_summary(summary)
             logger.info("Conversation summary saved")
 
-            # 3️⃣ Stop the agent session
             await session.stop()
 
-            # 4️⃣ Disconnect from the room
             await ctx.room.disconnect()
 
-            # 5️⃣ Shut down the job
             await ctx.shutdown()
 
         asyncio.create_task(handle())
@@ -189,6 +192,7 @@ async def entrypoint(ctx: JobContext):
 
 
     await asyncio.sleep(1.5)
+    # await background_audio.start(room=ctx.room, agent_session=session)
     await session.say("Hello, I am your personal verification bot. May I know your full name?", allow_interruptions=False)
     logger.info(f"Chat log saved to: {log_file}")
     
