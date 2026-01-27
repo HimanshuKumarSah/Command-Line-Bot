@@ -2,11 +2,20 @@ import csv
 import logging
 import asyncio
 import os
+import sys
 from datetime import datetime
-from livekit.agents import function_tool, RunContext, get_job_context
+from livekit.agents import function_tool, RunContext, get_job_context, JobContext
 from livekit import rtc, api
+from livekit.api import DeleteRoomRequest
 
 logger = logging.getLogger("voice-agent")
+
+_conversation_tracker = None
+
+def set_conversation_tracker(tracker):
+    """Set the global conversation tracker"""
+    global _conversation_tracker
+    _conversation_tracker = tracker
 
 @function_tool
 async def verify_and_save(
@@ -24,6 +33,9 @@ async def verify_and_save(
         company: Company name"""
     
     logger.info(f"Verifying and saving: {name}, {phone}, {email}, {company}")
+
+    if _conversation_tracker:
+        _conversation_tracker.add_message("user", f"name: {name}, phone: {phone}, email: {email}, company:{company}" )
     
     csv_file = "user_data.csv"
     
@@ -99,33 +111,49 @@ async def verify_and_save(
             writer.writerows(existing_data)
         
         logger.info(f"✓ Successfully saved to {os.path.abspath(csv_file)}")
+
+        if _conversation_tracker:
+            _conversation_tracker.add_message("agent", message)
+
         return message
         
     except Exception as e:
         logger.error(f"Failed to verify and save: {e}")
         return "I apologize, there was an error processing your information. Please try again."
 
-
 @function_tool
 async def end_call(ctx: RunContext) -> str:
-    """End the phone call after the assistant finishes speaking."""
-    logger.info("Agent is hanging up.")
+    """End the phone call and exit the program."""
+    logger.info("Agent is hanging up")
+
+    if _conversation_tracker:
+        _conversation_tracker.add_message("agent", "Call ended, Goodbye!")
+
+    return "Call ended"
+
+SUMMARY_PROMPT = """
+    Summarize the following conversation in 2–3 sentences.
+    Focus on the user's provided details and the final outcome.
+
+    Conversation:
+    {conversation}"""
+async def summarize_conversation(conversation_text: str, llm) -> str:
+    """System tool to summarize a completed conversation.
+    This is NOT exposed to the LLM as a callable tool.
+    """
+    result = await llm.complete(
+        SUMMARY_PROMPT.format(conversation=conversation_text)
+    )
+    return result.text.strip()
+
+def format_conversation_for_summary(message):
+    """
+    messages: list of conversation entries from ConversationTracker
+    """
+    return "\n".join(
+        f"{m['speaker'].upper()}: {m['message']}"
+        for m in message
+    )
     
-    async def delayed_disconnect():
-        try:
-            await asyncio.sleep(2)
-            job_ctx = get_job_context()
-            if job_ctx:
-                await job_ctx.api.room.delete_room(
-                    api.DeleteRoomRequest(room=job_ctx.room.name)
-                )
-                logger.info(f"Room {job_ctx.room.name} deleted successfully")
-            else:
-                logger.warning("Could not get job context for disconnect")
-        except Exception as e:
-            logger.error(f"Error disconnection: {e}")
-    
-    asyncio.create_task(delayed_disconnect())
-    return "The call is ending."
 
 ALL_TOOLS = [verify_and_save, end_call]
